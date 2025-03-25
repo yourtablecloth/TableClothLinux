@@ -1,0 +1,100 @@
+#cloud-config
+
+# Setup
+# curl.exe -L https://cloud-images.ubuntu.com/wsl/jammy/current/ubuntu-jammy-wsl-amd64-ubuntu22.04lts.rootfs.tar.gz -o ubuntu-jammy-wsl-amd64.tar.gz
+# mkdir C:\Distro\tablecloth
+# wsl.exe --unregister tablecloth
+# wsl.exe --import tablecloth C:\Distro\tablecloth .\ubuntu-jammy-wsl-amd64.tar.gz --version 2
+# wsl.exe -d tablecloth -- cloud-init status --wait --long
+# wsl.exe -t tablecloth
+# wsl.exe -d tablecloth
+
+users:
+- name: tablecloth
+  gecos: 'TableCloth'
+  groups: [adm, dialout, cdrom, floppy, sudo, audio, dip, video, plugdev, netdev]
+  sudo: ALL=(ALL) NOPASSWD:ALL
+  shell: /bin/bash
+
+write_files:
+- path: /etc/wsl.conf
+  append: false
+  content: |
+    [automount]
+    enabled = true
+    mountFsTab = true
+
+    [interop]
+    enabled = true
+    appendWindowsPath = true
+
+    [boot]
+    systemd = true
+
+    [user]
+    default = tablecloth
+
+- path: /etc/modprobe.d/nf_conntrack_ipv4.conf
+  append: false
+  content: |
+    alias nf_conntrack_ipv4 nf_conntrack
+
+packages: [locales, wget, libnss3-tools, wine, fonts-nanum, fonts-nanum-extra, fonts-nanum-coding, fonts-nanum-eco, fonts-noto-cjk, gnome-text-editor, gimp, nautilus, vlc, x11-apps, wslu]
+
+locale: ko_KR.UTF-8
+
+runcmd:
+  # 32비트 Win32 EXE 파일 실행 지원을 위한 wine32 설치
+  - apt update && apt -y upgrade && apt -y autoremove
+  - dpkg --add-architecture i386 && apt -y install wine32
+
+  # Google Chrome 설치
+  - wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb --output-document=/tmp/google-chrome-stable_current_amd64.deb
+  - apt install -y --fix-missing /tmp/google-chrome-stable_current_amd64.deb
+  - rm /tmp/google-chrome-stable_current_amd64.deb
+
+  # AhnLab Safe Transaction을 위한 Workaround 적용
+  - modprobe nf_conntrack
+  - modprobe nf_conntrack_netlink
+  - sudo depmod -a
+  - modprobe nf_conntrack_ipv4
+
+#  - wget http://ftp.kr.debian.org/debian/pool/main/o/openldap/libldap-2.4-2_2.4.57+dfsg-3+deb11u1_amd64.deb --output-document=/tmp/libldap-2.4-2_2.4.57+dfsg-3+deb11u1_amd64.deb
+#  - wget http://ftp.kr.debian.org/debian/pool/main/e/enchant/libenchant1c2a_1.6.0-11.1+b1_amd64.deb --output-document=/tmp/libenchant1c2a_1.6.0-11.1+b1_amd64.deb
+#  - wget http://ftp.kr.debian.org/debian/pool/main/libw/libwebp/libwebp6_0.6.1-2.1+deb11u2_amd64.deb --output-document=/tmp/libwebp6_0.6.1-2.1+deb11u2_amd64.deb
+#  - wget http://ftp.kr.debian.org/debian/pool/main/libi/libidn/libidn11_1.33-2.2_amd64.deb --output-document=/tmp/libidn11_1.33-2.2_amd64.deb
+#  - wget http://security.ubuntu.com/ubuntu/pool/main/i/icu/libicu55_55.1-7ubuntu0.5_amd64.deb --output-document=/tmp/libicu55_55.1-7ubuntu0.5_amd64.deb
+#  - wget http://security.ubuntu.com/ubuntu/pool/universe/w/webkitgtk/libjavascriptcoregtk-3.0-0_2.4.11-3ubuntu3_amd64.deb --output-document=/tmp/libjavascriptcoregtk-3.0-0_2.4.11-3ubuntu3_amd64.deb
+#  - wget http://security.ubuntu.com/ubuntu/pool/main/i/icu/libicu60_60.2-3ubuntu3.2_amd64.deb --output-document=/tmp/libicu60_60.2-3ubuntu3.2_amd64.deb
+#  - wget http://security.ubuntu.com/ubuntu/pool/universe/w/webkitgtk/libwebkitgtk-3.0-0_2.4.11-3ubuntu3_amd64.deb --output-document=/tmp/libwebkitgtk-3.0-0_2.4.11-3ubuntu3_amd64.deb
+#  - wget http://launchpadlibrarian.net/344880892/libwebkitgtk-1.0-0_2.4.11-3ubuntu3_amd64.deb --output-document=/tmp/libwebkitgtk-1.0-0_2.4.11-3ubuntu3_amd64.deb
+#  - wget http://launchpadlibrarian.net/344880889/libjavascriptcoregtk-1.0-0_2.4.11-3ubuntu3_amd64.deb --output-document=/tmp/libjavascriptcoregtk-1.0-0_2.4.11-3ubuntu3_amd64.deb
+#  - wget http://launchpadlibrarian.net/668089858/libssl1.0.0_1.0.2n-1ubuntu5.13_amd64.deb --output-document=/tmp/libssl1.0.0_1.0.2n-1ubuntu5.13_amd64.deb
+#  - apt -y --fix-missing install /tmp/libldap-2.4-2_2.4.57+dfsg-3+deb11u1_amd64.deb /tmp/libenchant1c2a_1.6.0-11.1+b1_amd64.deb /tmp/libwebp6_0.6.1-2.1+deb11u2_amd64.deb /tmp/libidn11_1.33-2.2_amd64.deb /tmp/libicu55_55.1-7ubuntu0.5_amd64.deb /tmp/libicu60_60.2-3ubuntu3.2_amd64.deb /tmp/libssl1.0.0_1.0.2n-1ubuntu5.13_amd64.deb /tmp/libjavascriptcoregtk-3.0-0_2.4.11-3ubuntu3_amd64.deb /tmp/libwebkitgtk-3.0-0_2.4.11-3ubuntu3_amd64.deb /tmp/libjavascriptcoregtk-1.0-0_2.4.11-3ubuntu3_amd64.deb /tmp/libwebkitgtk-1.0-0_2.4.11-3ubuntu3_amd64.deb
+#  - rm -f /tmp/libldap-2.4-2_2.4.57+dfsg-3+deb11u1_amd64.deb /tmp/libenchant1c2a_1.6.0-11.1+b1_amd64.deb /tmp/libwebp6_0.6.1-2.1+deb11u2_amd64.deb /tmp/libidn11_1.33-2.2_amd64.deb /tmp/libicu55_55.1-7ubuntu0.5_amd64.deb /tmp/libicu60_60.2-3ubuntu3.2_amd64.deb /tmp/libssl1.0.0_1.0.2n-1ubuntu5.13_amd64.deb /tmp/libjavascriptcoregtk-3.0-0_2.4.11-3ubuntu3_amd64.deb /tmp/libwebkitgtk-3.0-0_2.4.11-3ubuntu3_amd64.deb /tmp/libjavascriptcoregtk-1.0-0_2.4.11-3ubuntu3_amd64.deb /tmp/libwebkitgtk-1.0-0_2.4.11-3ubuntu3_amd64.deb
+
+  # IPInside-LWS를 위한 Workaround
+  # su 명령어를 통해 대상 사용자가 실행할 명령어를 전달할 때는 작은 따옴표를 사용해야 환경 변수가 미리 해석되는 것을 방지할 수 있음
+  - su - tablecloth -c 'mkdir -p $HOME/.pki/nssdb'
+  - su - tablecloth -c 'certutil -N -d sql:$HOME/.pki/nssdb'
+
+  # AnySign4PC를 위한 Workaround
+  - mkdir -p /opt/anysign4pc/amd64/
+  - ln /usr/bin/certutil /opt/anysign4pc/amd64/certutil
+
+  # IPInside, Veraport, AnySign4PC, ASTX 설치
+  - wget https://www.wooribank.com/download/IPinside/ipinside-lws_3.0.0.16_amd64.deb --output-document=/tmp/ipinside-lws_3.0.0.16_amd64.deb
+  - wget https://www.wooribank.com/download/veraportG3/veraport-g3_amd64.deb --output-document=/tmp/veraport-g3_amd64.deb
+  - wget http://download.softforum.co.kr/Published/AnySign/v1.1.2.6/anysign4pc_linux_x86_64.deb --output-document=/tmp/anysign4pc_linux_x86_64.deb
+  - wget https://safetx.ahnlab.com/master/linux/astx_u64.deb --output-document=/tmp/astx_u64.deb
+  - apt -y --fix-missing install /tmp/ipinside-lws_3.0.0.16_amd64.deb /tmp/anysign4pc_linux_x86_64.deb /tmp/veraport-g3_amd64.deb /tmp/astx_u64.deb
+  - rm -f install /tmp/ipinside-lws_3.0.0.16_amd64.deb /tmp/anysign4pc_linux_x86_64.deb /tmp/veraport-g3_amd64.deb /tmp/astx_u64.deb
+
+  # 공동인증서 placeholder 디렉터리 생성
+  - su - tablecloth -c 'mkdir -p ~/NPKI'
+  - su - tablecloth -c 'mkdir -p ~/.wine/drive_c/users/tablecloth/AppData/LocalLow/NPKI'
+
+#  - su - tablecloth -c 'sudo mount --bind "$(wslpath $(wslvar localappdata))/../LocalLow/NPKI" ~/NPKI'
+#  - su - tablecloth -c 'sudo mount -o remount,bind,ro ~/NPKI'
+#  - su - tablecloth -c 'sudo mount --bind "$(wslpath $(wslvar localappdata))/../LocalLow/NPKI" ~/.wine/drive_c/users/tablecloth/AppData/LocalLow/NPKI'
+#  - su - tablecloth -c 'sudo mount -o remount,bind,ro ~/.wine/drive_c/users/tablecloth/AppData/LocalLow/NPKI'
